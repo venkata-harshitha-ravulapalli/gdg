@@ -1,34 +1,27 @@
 import streamlit as st
-from openai import OpenAI
+import openai
 import nltk
 from nltk.sentiment import SentimentIntensityAnalyzer
 
-# 🔐 Option 1: For local testing — paste your key here directly
-# openai_api_key = "sk-your-real-api-key"
+# Get API key from Streamlit secrets
+openai.api_key = st.secrets["OPENAI_API_KEY"]
 
-# 🔐 Option 2: For Streamlit Cloud (securely store in Settings > Secrets)
-openai_api_key = st.secrets["OPENAI_API_KEY"]
-
-# Initialize OpenAI client
-client = OpenAI(api_key=openai_api_key)
-
-# Download VADER sentiment lexicon (used by NLTK)
+# Download VADER sentiment lexicon
 nltk.download("vader_lexicon")
 sia = SentimentIntensityAnalyzer()
 
-# Set up Streamlit page
+# Set up Streamlit app
 st.set_page_config(page_title="Mental Health AI Companion", page_icon="🧠")
 st.title("🧠 Mental Health AI Companion")
 st.write("This is a private, stigma-free space. Talk to the AI about how you're feeling.")
 
-# Get user input
+# User input
 user_input = st.text_area("🗣️ What's on your mind today?", height=150)
 
 if st.button("Send"):
     if not user_input.strip():
         st.warning("Please type something first.")
     else:
-        # Analyze mood
         sentiment = sia.polarity_scores(user_input)
         score = sentiment["compound"]
         if score >= 0.5:
@@ -39,14 +32,13 @@ if st.button("Send"):
             mood = "😐 Neutral"
 
         try:
-            # Ask OpenAI for a response
-            response = client.chat.completions.create(
+            # OpenAI ChatCompletion call
+            response = openai.ChatCompletion.create(
                 model="gpt-3.5-turbo",
                 messages=[{"role": "user", "content": user_input}]
             )
             ai_reply = response.choices[0].message.content.strip()
 
-            # Display AI reply and mood
             st.markdown("### 💬 AI Response")
             st.success(ai_reply)
 
