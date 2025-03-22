@@ -1,45 +1,47 @@
-import streamlit as st
+from flask import Flask, request, jsonify
 import openai
 import nltk
 from nltk.sentiment import SentimentIntensityAnalyzer
 
-# Set your OpenAI API key here
-openai.api_key = "sk-your-openai-api-key-here"
+app = Flask(__name__)
 
-# Download NLTK sentiment model
+# Set your OpenAI API key
+openai.api_key = "sk-your-api-key-here"
+
 nltk.download('vader_lexicon')
 sia = SentimentIntensityAnalyzer()
 
-# Streamlit UI
-st.set_page_config(page_title="Mental Health AI", page_icon="🧠")
-st.title("🧠 AI Mental Health Companion")
-st.write("Talk about how you feel, and get support from AI 💬")
+@app.route('/')
+def home():
+    return jsonify({"message": "Mental Health AI is running"}), 200
 
-user_input = st.text_area("📝 How are you feeling today?", height=150)
+@app.route('/chat', methods=['POST'])
+def chat():
+    data = request.get_json()
+    user_input = data.get("message", "")
 
-if st.button("Send to AI"):
-    if not user_input.strip():
-        st.warning("Please type something first.")
-    else:
-        with st.spinner("Analyzing and generating response..."):
-            # Sentiment Analysis
-            sentiment = sia.polarity_scores(user_input)
-            compound = sentiment["compound"]
-            mood = "Positive 😀" if compound >= 0.5 else "Negative 😟" if compound <= -0.5 else "Neutral 😐"
+    sentiment = sia.polarity_scores(user_input)
+    mood = (
+        "positive" if sentiment['compound'] >= 0.5 else
+        "negative" if sentiment['compound'] <= -0.5 else
+        "neutral"
+    )
 
-            try:
-                # Get AI reply from OpenAI
-                response = openai.ChatCompletion.create(
-                    model="gpt-3.5-turbo",
-                    messages=[{"role": "user", "content": user_input}]
-                )
-                reply = response.choices[0].message.content.strip()
+    try:
+        ai_response = openai.ChatCompletion.create(
+            model="gpt-3.5-turbo",
+            messages=[{"role": "user", "content": user_input}]
+        )
+        reply = ai_response.choices[0].message.content.strip()
 
-                # Show results
-                st.markdown("### 💬 AI's Reply")
-                st.success(reply)
-                st.markdown("### 📊 Mood Detected")
-                st.info(f"{mood} (Sentiment Score: {compound:.2f})")
+        return jsonify({
+            "reply": reply,
+            "mood": mood,
+            "score": sentiment['compound']
+        })
 
-            except Exception as e:
-                st.error(f"Error from OpenAI: {e}")
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+if __name__ == '__main__':
+    app.run(debug=True, port=5000)
