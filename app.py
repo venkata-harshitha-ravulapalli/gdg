@@ -7,7 +7,7 @@ from nltk.sentiment import SentimentIntensityAnalyzer
 # openai_api_key = "sk-your-real-api-key"
 
 # 🔐 Option 2: For Streamlit Cloud (securely store in Settings > Secrets)
-openai_api_key = st.secrets["AIzaSyBZZ6JSwO7V6dH2I6qqLUH8_v9OiQGDO_o"]
+openai_api_key = st.secrets["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"]
 
 # Initialize OpenAI client
 client = OpenAI(api_key=openai_api_key)
