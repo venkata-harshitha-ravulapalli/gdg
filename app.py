@@ -1,47 +1,35 @@
-from flask import Flask, request, jsonify
+import streamlit as st
 import openai
 import nltk
 from nltk.sentiment import SentimentIntensityAnalyzer
 
-app = Flask(__name__)
-
-# Set your OpenAI API key
-openai.api_key = "sk-your-api-key-here"
-
-nltk.download('vader_lexicon')
+# Setup
+openai.api_key = "sk-your-api-key"
+nltk.download("vader_lexicon")
 sia = SentimentIntensityAnalyzer()
 
-@app.route('/')
-def home():
-    return jsonify({"message": "Mental Health AI is running"}), 200
+st.title("🧠 AI Mental Health Support")
+st.write("Chat with an AI and track your mood.")
 
-@app.route('/chat', methods=['POST'])
-def chat():
-    data = request.get_json()
-    user_input = data.get("message", "")
+msg = st.text_area("How are you feeling today?", height=150)
 
-    sentiment = sia.polarity_scores(user_input)
-    mood = (
-        "positive" if sentiment['compound'] >= 0.5 else
-        "negative" if sentiment['compound'] <= -0.5 else
-        "neutral"
-    )
+if st.button("Send"):
+    if msg:
+        sentiment = sia.polarity_scores(msg)
+        compound = sentiment["compound"]
+        mood = "Positive 😀" if compound >= 0.5 else "Negative 😟" if compound <= -0.5 else "Neutral 😐"
 
-    try:
-        ai_response = openai.ChatCompletion.create(
+        response = openai.ChatCompletion.create(
             model="gpt-3.5-turbo",
-            messages=[{"role": "user", "content": user_input}]
+            messages=[{"role": "user", "content": msg}]
         )
-        reply = ai_response.choices[0].message.content.strip()
 
-        return jsonify({
-            "reply": reply,
-            "mood": mood,
-            "score": sentiment['compound']
-        })
+        reply = response.choices[0].message.content.strip()
 
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        st.markdown("### 💬 AI Response")
+        st.success(reply)
 
-if __name__ == '__main__':
-    app.run(debug=True, port=5000)
+        st.markdown("### 📊 Detected Mood")
+        st.info(f"{mood} (score: {compound:.2f})")
+    else:
+        st.warning("Please enter something.")
