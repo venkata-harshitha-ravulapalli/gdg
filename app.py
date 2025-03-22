@@ -3,40 +3,50 @@ from openai import OpenAI
 import nltk
 from nltk.sentiment import SentimentIntensityAnalyzer
 
-# ✅ Set your OpenAI API key here (or use Streamlit secrets in production)
-openai_api_key = "sk-Your-OpenAI-Key-Here"
+# 🔐 Option 1: For local testing — paste your key here directly
+# openai_api_key = "sk-your-real-api-key"
+
+# 🔐 Option 2: For Streamlit Cloud (securely store in Settings > Secrets)
+openai_api_key = st.secrets["AIzaSyBZZ6JSwO7V6dH2I6qqLUH8_v9OiQGDO_o"]
+
+# Initialize OpenAI client
 client = OpenAI(api_key=openai_api_key)
 
-# 📥 Download VADER sentiment model
+# Download VADER sentiment lexicon (used by NLTK)
 nltk.download("vader_lexicon")
 sia = SentimentIntensityAnalyzer()
 
-# 🧠 Streamlit UI
-st.set_page_config(page_title="Mental Health AI", page_icon="🧠")
+# Set up Streamlit page
+st.set_page_config(page_title="Mental Health AI Companion", page_icon="🧠")
 st.title("🧠 Mental Health AI Companion")
-st.write("Talk about how you're feeling. This app offers a private, stigma-free space.")
+st.write("This is a private, stigma-free space. Talk to the AI about how you're feeling.")
 
-# 📝 User input
-user_input = st.text_area("🗣️ What's on your mind?", height=150)
+# Get user input
+user_input = st.text_area("🗣️ What's on your mind today?", height=150)
 
 if st.button("Send"):
     if not user_input.strip():
-        st.warning("Please enter a message.")
+        st.warning("Please type something first.")
     else:
-        # 🧠 Mood detection
+        # Analyze mood
         sentiment = sia.polarity_scores(user_input)
         score = sentiment["compound"]
-        mood = "😊 Positive" if score >= 0.5 else "😟 Negative" if score <= -0.5 else "😐 Neutral"
+        if score >= 0.5:
+            mood = "😊 Positive"
+        elif score <= -0.5:
+            mood = "😟 Negative"
+        else:
+            mood = "😐 Neutral"
 
         try:
-            # 🤖 Get response from OpenAI (ChatGPT)
+            # Ask OpenAI for a response
             response = client.chat.completions.create(
                 model="gpt-3.5-turbo",
                 messages=[{"role": "user", "content": user_input}]
             )
             ai_reply = response.choices[0].message.content.strip()
 
-            # ✅ Show results
+            # Display AI reply and mood
             st.markdown("### 💬 AI Response")
             st.success(ai_reply)
 
